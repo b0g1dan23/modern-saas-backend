@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "227453b8-1e31-4247-96f4-66f3a1742617",
+  "id": "7393a8ed-f874-41d0-87b2-09699440317c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "todos_table": {
@@ -9,10 +9,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "integer",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": true
         },
         "title": {
           "name": "title",
@@ -25,16 +25,16 @@
           "name": "done",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         },
         "created_at": {
           "name": "created_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "(cast((julianday('now') - 2440587.5)*86400000 as integer))"
+          "autoincrement": false
         },
         "updated_at": {
           "name": "updated_at",

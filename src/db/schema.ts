@@ -1,11 +1,25 @@
-import { createId } from "@paralleldrive/cuid2";
-import { sql } from "drizzle-orm";
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
 export const todosTable = sqliteTable("todos_table", {
-    id: text("id").$defaultFn(() => createId()).primaryKey(),
-    title: text("title").notNull(),
-    done: integer("done", { mode: 'boolean' }),
-    createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(cast((julianday('now') - 2440587.5)*86400000 as integer))`),
-    updatedAt: integer("updated_at", { mode: 'timestamp' }).$onUpdate(() => new Date())
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    title: text("title")
+        .notNull(),
+    done: integer("done", { mode: 'boolean' })
+        .default(false).notNull(),
+    createdAt: integer("created_at")
+        .$defaultFn(() => Date.now()),
+    updatedAt: integer("updated_at")
+        .$defaultFn(() => Date.now())
+        .$onUpdate(() => Date.now())
 });
+
+export const selectTodosSchema = createSelectSchema(todosTable);
+
+export const insertTaskSchema = createInsertSchema(todosTable, {
+    title: (schema) => schema.min(1).max(500),
+})
+    .required({ done: true })
+    .omit({ id: true, createdAt: true, updatedAt: true });
+
+export const pathTasksSchema = insertTaskSchema.partial();
