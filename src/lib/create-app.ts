@@ -18,3 +18,9 @@ export function createApp() {
     app.onError(onError);
     return app;
 }
+
+export function createTestApp(router: OpenAPIHono<AppBindings>) {
+    const testApp = createApp();
+    testApp.route("/", router);
+    return testApp;
+}

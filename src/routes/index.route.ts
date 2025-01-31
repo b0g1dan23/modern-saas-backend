@@ -11,7 +11,7 @@ export default createRouter()
         responses: {
             [OK]:
                 jsonContent(z.object({
-                    message: z.string().default("Hello tasks")
-                }), "Tasks API Index")
+                    message: z.string().default("Hello world")
+                }), "Apartment renting - Zlatibor API")
         }
     }), (c) => { return c.json({ message: "Hello, World!" }, OK) })
