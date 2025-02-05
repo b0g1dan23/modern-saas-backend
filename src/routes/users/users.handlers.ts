@@ -80,7 +80,7 @@ export const registerUser: AppRouteHandler<RegisterUserRoute> = async (c) => {
 
     // Send mail
     const verification_link = await createVerificationLink(inserted.id);
-    await sendMail([{ Email: inserted.email, Name: inserted.name }], `Hi ${inserted.name} one more step left to go 😆`, verification_link);
+    await sendMail([{ Email: inserted.email, Name: inserted.name }], `Hi ${inserted.name}, one more step left to go 😆`, verification_link);
 
     const { accessToken, refreshToken } = await generateTokens(inserted.id, inserted.role);
     await saveRefreshToken(inserted.id, refreshToken);
