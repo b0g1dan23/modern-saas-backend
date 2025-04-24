@@ -1,5 +1,5 @@
-import env from "@/env";
-import { INTERNAL_SERVER_ERROR, OK } from "@/helpers/http-status-codes";
+import env from "$/env";
+import { INTERNAL_SERVER_ERROR, OK } from "$/helpers/http-status-codes";
 import { Context, ErrorHandler } from "hono";
 import { StatusCode } from "hono/utils/http-status";
 

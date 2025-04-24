@@ -1,4 +1,4 @@
-import { AppOpenAPI } from "@/types";
+import { AppOpenAPI } from "$/types";
 
 import packageJSON from '../../package.json';
 import { apiReference } from "@scalar/hono-api-reference";

@@ -1,4 +1,4 @@
-import env from '@/env'
+import env from '$/env'
 import Mailjet from 'node-mailjet'
 
 const mailjet = Mailjet.apiConnect(env.MAILJET_API_KEY, env.MAILJET_SECRET_KEY);
@@ -74,16 +74,98 @@ export const sendMail = async (receiver: ReceiverType[], Subject: string, verifi
 </body>
 </html>
 `
-    const req = await mailjet.post('send', { version: 'v3.1' })
+    await mailjet.post('send', { version: 'v3.1' })
         .request({
             Messages: [
                 {
                     From: {
-                        Email: "hi@boge.dev",
-                        Name: "Bogdan Stevanovic"
+                        Email: env.MAILJET_SENDER_EMAIL,
+                        Name: env.MAILJET_SENDER_NAME
                     },
                     To: receiver,
                     Subject,
+                    HTMLPart: html
+                }
+            ]
+        })
+}
+
+export const sendResetPasswordEmail = async (receiver: ReceiverType[], reset_link: string) => {
+    const html = `
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resetovanje lozinke</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .message {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .button {
+            display: inline-block;
+            background: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .footer {
+            font-size: 12px;
+            color: #777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Tvoj Brend</div>
+        <div class="message">Zdravo, <strong>${receiver[0].Name}</strong>!<br>
+            Kliknite na dugme ispod da resetujete svoju lozinku.</div>
+        <a href="${reset_link}" class="button">Resetuj lozinku</a>
+        <div class="footer">Ako niste vi zatražili resetovanje lozinke, možete zanemariti ovaj e-mail.</div>
+    </div>
+</body>
+</html>
+`
+    await mailjet.post('send', { version: 'v3.1' })
+        .request({
+            Messages: [
+                {
+                    From: {
+                        Email: env.MAILJET_SENDER_EMAIL,
+                        Name: env.MAILJET_SENDER_NAME
+                    },
+                    To: receiver,
+                    Subject: `${receiver[0].Name}, resetujte svoju lozinku`,
                     HTMLPart: html
                 }
             ]
@@ -161,8 +243,8 @@ export const sendLoginMail = async (receiver: ReceiverType[], login_link: string
             Messages: [
                 {
                     From: {
-                        Email: "hi@boge.dev",
-                        Name: "Bogdan Stevanovic"
+                        Email: env.MAILJET_SENDER_EMAIL,
+                        Name: env.MAILJET_SENDER_NAME
                     },
                     To: receiver,
                     Subject: `${receiver[0].Name}, your login link is ready!`,

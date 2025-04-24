@@ -1,8 +1,8 @@
-import onError from "@/middlewares/error-handler";
-import notFound from "@/middlewares/not-found";
-import custom_logger from "@/middlewares/pino-logger";
+import onError from "$/middlewares/error-handler";
+import notFound from "$/middlewares/not-found";
+import custom_logger from "$/middlewares/pino-logger";
 import { OpenAPIHono } from "@hono/zod-openapi";
-import type { AppBindings } from "@/types";
+import type { AppBindings } from "$/types";
 import defaultHook from "./defaultHook";
 
 export function createRouter() {

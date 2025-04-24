@@ -1,15 +1,22 @@
-import { insertUserSchema, selectUsersSchema } from "@/db/schema"
-import { BAD_REQUEST, CREATED, MOVED_PERMANENTLY, NOT_FOUND, OK } from "@/helpers/http-status-codes"
-import IDParamsSchema from "@/helpers/id-params-schema"
-import jsonContent from "@/helpers/json-content"
-import notFoundSchema from "@/helpers/not-found-schema"
+import { insertUserSchema, selectUsersSchema } from "$/db/schema"
+import { BAD_REQUEST, CREATED, NOT_FOUND, OK, PERMANENT_REDIRECT } from "$/helpers/http-status-codes"
+import jsonContent from "$/helpers/json-content"
+import jsonContentRequired from "$/helpers/json-content-required"
+import notFoundSchema from "$/helpers/not-found-schema"
+import rateLimiter from "$/middlewares/rate-limiter"
 import { createRoute, z } from "@hono/zod-openapi"
 
-const tags = ['Users']
+enum UserTags {
+    GOOGLE_LOGIN = 'Google Login',
+    EMAIL_VERIFICATION = 'Email verification',
+    FORGOT_PASSWORD = 'Forgot password',
+    LOGIN_REGISTRATION = 'Login and registration',
+    USERS = 'Users'
+}
 
 export const listAllUsers = createRoute({
     path: '/users',
-    tags,
+    tags: [UserTags.USERS],
     method: 'get',
     responses: {
         [OK]: jsonContent(z.array(selectUsersSchema), "List of users")
@@ -18,7 +25,7 @@ export const listAllUsers = createRoute({
 
 export const getOneUser = createRoute({
     path: "/users/{id}",
-    tags,
+    tags: [UserTags.USERS],
     method: 'get',
     request: {
         params: z.object({
@@ -33,7 +40,7 @@ export const getOneUser = createRoute({
 
 export const registerUser = createRoute({
     path: '/users',
-    tags,
+    tags: [UserTags.LOGIN_REGISTRATION],
     method: 'post',
     request: {
         body: jsonContent(insertUserSchema, "User credentials")
@@ -46,12 +53,13 @@ export const registerUser = createRoute({
 
 export const loginUser = createRoute({
     path: '/users/login',
-    tags,
+    tags: [UserTags.LOGIN_REGISTRATION],
     method: 'post',
     request: {
         body: jsonContent(z.object({
             email: z.string(),
-            password: z.string()
+            password: z.string(),
+            remember: z.boolean().optional()
         }), "User credentials")
     },
     responses: {
@@ -65,7 +73,7 @@ export const loginUser = createRoute({
 
 export const logoutUser = createRoute({
     path: '/users/logout',
-    tags,
+    tags: [UserTags.LOGIN_REGISTRATION],
     method: 'post',
     responses: {
         [OK]: jsonContent(z.object({
@@ -76,7 +84,7 @@ export const logoutUser = createRoute({
 
 export const verifyEmail = createRoute({
     path: "/users/verify-email/{id}",
-    tags,
+    tags: [UserTags.EMAIL_VERIFICATION],
     method: 'get',
     request: {
         params: z.object({
@@ -96,8 +104,13 @@ export const verifyEmail = createRoute({
 
 export const resendVerificationEmail = createRoute({
     path: "/users/verify-email",
-    tags,
+    tags: [UserTags.EMAIL_VERIFICATION],
     method: 'post',
+    request: {
+        headers: z.object({
+            Authorization: z.string().describe("Bearer token").startsWith("Bearer "),
+        }),
+    },
     responses: {
         [OK]: jsonContent(z.object({
             message: z.string().default("Verification email sent")
@@ -108,25 +121,87 @@ export const resendVerificationEmail = createRoute({
     }
 })
 
+export const sendForgotPasswordEmail = createRoute({
+    path: "/users/forgot-password",
+    middleware: [rateLimiter()] as const,
+    tags: [UserTags.FORGOT_PASSWORD],
+    method: 'post',
+    request: {
+        body: jsonContent(z.object({
+            email: z.string()
+        }), "Email address")
+    },
+    responses: {
+        [OK]: jsonContent(z.object({
+            message: z.string().default("Verification email sent")
+        }), "Verification email sent"),
+        [BAD_REQUEST]: jsonContent(z.object({
+            message: z.string().default("No refresh token found")
+        }), "No refresh token found")
+    }
+})
+
+export const validatePassword = createRoute({
+    path: "/users/forgot-password/{id}",
+    tags: [UserTags.FORGOT_PASSWORD],
+    method: 'get',
+    request: {
+        params: z.object({
+            id: z.string()
+        }),
+        body: jsonContent(z.object({
+            newPassword: z.string().min(8)
+        }), "Password details")
+    },
+    responses: {
+        [OK]: jsonContent(z.object({
+            message: z.string().default("Password successfully changed")
+        }), "Password verified"),
+        [NOT_FOUND]: notFoundSchema(),
+        [BAD_REQUEST]: jsonContent(z.object({
+            message: z.string().default("Verification link expired")
+        }), "Verification link expired")
+    }
+})
+
+export const awakeAccessToken = createRoute({
+    path: "/users/newAccessToken",
+    tags: [UserTags.LOGIN_REGISTRATION],
+    method: "post",
+    request: {
+        body: jsonContentRequired(z.object({
+            refreshToken: z.string()
+        }), "Refresh token"),
+    },
+    responses: {
+        [OK]: jsonContent(z.object({
+            accessToken: z.string()
+        }),
+            "New access token"
+        ),
+        [BAD_REQUEST]: jsonContent(z.object({
+            message: z.string().default("Invalid refresh token")
+        }), "Invalid refresh token")
+    }
+})
+
 export const googleLogin = createRoute({
     path: '/users/oauth/google',
-    tags,
+    tags: [UserTags.GOOGLE_LOGIN],
     method: 'post',
     responses: {
-        [MOVED_PERMANENTLY]: {
-            description: "Redirecting to Google consent screen"
-        }
+        [OK]: jsonContent(z.object({ url: z.string() }), "Google login URL")
     }
 })
 
 export const googleCallback = createRoute({
     path: '/users/oauth/google/callback',
-    tags,
+    tags: [UserTags.GOOGLE_LOGIN],
     method: 'get',
     responses: {
-        [OK]: jsonContent(z.object({
-            message: z.string().default("Google login successful")
-        }), "Google login successful"),
+        [PERMANENT_REDIRECT]: {
+            description: "Redirect to frontend",
+        },
         [BAD_REQUEST]: jsonContent(z.object({
             message: z.string().default("Google login failed")
         }), "Google login failed")
@@ -139,7 +214,11 @@ export type RegisterUserRoute = typeof registerUser;
 export type LoginUserRoute = typeof loginUser;
 export type LogoutUserRoute = typeof logoutUser;
 export type VerifyEmailRoute = typeof verifyEmail;
+export type AwakeAccessTokenRoute = typeof awakeAccessToken;
 export type ResendVerificationRoute = typeof resendVerificationEmail;
+
+export type ForgotPasswordRoute = typeof sendForgotPasswordEmail;
+export type ValidatePasswordRoute = typeof validatePassword;
 
 export type GoogleLoginRoute = typeof googleLogin;
 export type GoogleCallbackRoute = typeof googleCallback;
